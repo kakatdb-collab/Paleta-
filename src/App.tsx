@@ -111,7 +111,7 @@ const Hero = () => {
           <motion.img 
             key={currentIndex}
             src={images[currentIndex]} 
-            alt="Studio Background" 
+            alt={`Estúdio de Podcast em São Paulo - Paleta Estúdios - Foto ${currentIndex + 1}`} 
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.5 }}
             exit={{ opacity: 0 }}
@@ -130,7 +130,7 @@ const Hero = () => {
           transition={{ duration: 0.8 }}
           className="text-5xl md:text-7xl font-bold tracking-tight mb-6"
         >
-          Podcast <span className="gradient-text">Paleta</span> — Onde Suas Ideias Ganham Voz e Imagem
+          O Melhor <span className="gradient-text">Estúdio de Podcast</span> em São Paulo
         </motion.h1>
         <motion.p 
           initial={{ opacity: 0, y: 20 }}
@@ -138,7 +138,7 @@ const Hero = () => {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="text-lg md:text-xl text-white/60 mb-10 max-w-2xl mx-auto"
         >
-          O estúdio de podcast e produção de conteúdo completo no coração de São Paulo.
+          Aluguel de estúdio para podcast corporativo, gravação de lives e produções audiovisuais no coração de SP.
         </motion.p>
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
@@ -189,12 +189,12 @@ const About = () => {
           transition={{ duration: 0.8 }}
         >
           <h2 className="text-sm font-bold tracking-widest text-orange-500 uppercase mb-4">Nosso DNA</h2>
-          <h3 className="text-4xl font-bold mb-6">Esqueça aquele estúdio frio e impessoal.</h3>
+          <h3 className="text-4xl font-bold mb-6">Aluguel de Estúdio de Podcast em São Paulo</h3>
           <p className="text-white/70 leading-relaxed mb-6">
-            No coração de São Paulo, o maior palco da América Latina, nasceu um espaço feito para quem leva conteúdo a sério. O Estúdio Paleta é um estúdio de podcast e produção de conteúdo completo, com estrutura híbrida, estética sofisticada e tudo que você precisa para transformar uma ideia em conteúdo de alto impacto — do roteiro à distribuição.
+            No coração de São Paulo, o maior palco da América Latina, nasceu um espaço feito para quem leva conteúdo a sério. A Paleta Estúdios oferece o melhor serviço de <strong>aluguel de estúdio de podcast</strong>, com estrutura híbrida, estética sofisticada e tudo que você precisa para transformar uma ideia em conteúdo de alto impacto — do roteiro à distribuição.
           </p>
           <p className="text-white/70 leading-relaxed mb-8">
-            Nossa identidade própria: decoração vintage com influências industriais e contemporâneas, criando um ambiente acolhedor, moderno e absolutamente instagramável.
+            Especialistas em <strong>podcast corporativo</strong> e produções audiovisuais, nossa identidade une decoração vintage com influências industriais, criando um ambiente acolhedor, moderno e absolutamente instagramável.
           </p>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center gap-2 text-sm text-white/80">
@@ -241,13 +241,13 @@ const About = () => {
 const Services = () => {
   const services = [
     {
-      title: "Gravação de Áudio e Vídeo",
-      desc: "Captação profissional com equipamentos de ponta para garantir a melhor qualidade.",
+      title: "Gravação de Podcast",
+      desc: "Aluguel de estúdio completo com microfones Shure e câmeras 4K para o seu podcast em São Paulo.",
       icon: Mic,
     },
     {
       title: "Edição e Pós-produção",
-      desc: "Tratamento completo de áudio e vídeo, garantindo um resultado final impecável.",
+      desc: "Tratamento completo de áudio e vídeo, garantindo um resultado final impecável para YouTube e Spotify.",
       icon: Scissors,
     },
     {
@@ -256,7 +256,7 @@ const Services = () => {
       icon: Video,
     },
     {
-      title: "Live Streaming",
+      title: "Gravação de Lives",
       desc: "Transmissão ao vivo para múltiplas plataformas com estabilidade e qualidade profissional.",
       icon: Radio,
     },
@@ -266,8 +266,8 @@ const Services = () => {
       icon: FileText,
     },
     {
-      title: "Na sua Empresa",
-      desc: "Levamos toda nossa estrutura até você. Ideal para eventos e treinamentos corporativos.",
+      title: "Podcast Móvel / Corporativo",
+      desc: "Levamos toda nossa estrutura até sua empresa. Ideal para eventos e podcast corporativo.",
       icon: Building2,
       highlight: true,
     },
@@ -634,7 +634,7 @@ const Footer = () => {
             <span className="text-lg font-bold tracking-tighter uppercase text-white">Paleta Estúdios</span>
           </div>
           <p className="text-white/40 max-w-sm mb-8">
-            O estúdio de podcast e produção de conteúdo completo no coração de São Paulo. Modernos por natureza. Sérios por escolha.
+            O melhor estúdio de podcast e produção de conteúdo em São Paulo. Especialistas em podcast corporativo, lives e podcast móvel.
           </p>
           <div className="flex gap-4">
             <a href="#" className="w-10 h-10 rounded-full glass flex items-center justify-center hover:bg-white/10 transition-colors"><Instagram size={20} /></a>
