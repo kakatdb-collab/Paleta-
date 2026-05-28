@@ -1,23 +1,9 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const { execSync } = require('child_process');
 
 const distPath = path.join(__dirname, 'dist');
-
-// Auto-build fallback if dist folder is missing (very common on Hostinger/cPanel)
-if (!fs.existsSync(distPath)) {
-  console.log('dist/ directory not found on startup. Executing production build...');
-  try {
-    execSync('npm run build', { stdio: 'inherit' });
-    console.log('Production build completed successfully!');
-  } catch (error) {
-    console.error('Failed to run production build on startup:', error);
-  }
-}
-
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 // Serve the static files from the build (dist) directory
 app.use(express.static(distPath));
@@ -28,10 +14,20 @@ app.get('*', (req, res) => {
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
-    res.status(500).send('Application build in progress or dist/index.html is missing. Please refresh in a moment.');
+    res.status(500).send('Application build is missing. Please ensure "npm run build" is executed before visiting this page.');
   }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// Configure PORT for standard environments vs Passenger UNIX sockets
+const PORT = process.env.PORT || 3000;
+
+// If PORT is not a number, it's a UNIX socket (typical in Phusion Passenger / Hostinger)
+if (isNaN(PORT)) {
+  app.listen(PORT, () => {
+    console.log(`Server is running on Passenger UNIX socket: ${PORT}`);
+  });
+} else {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is running on port ${parseInt(PORT, 10)}`);
+  });
+}
