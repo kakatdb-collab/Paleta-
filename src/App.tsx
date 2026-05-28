@@ -15,7 +15,9 @@ import {
   MapPin,
   Phone,
   Mail,
-  CheckCircle2
+  CheckCircle2,
+  HelpCircle,
+  ChevronDown
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -36,6 +38,7 @@ const Navbar = () => {
     { name: "Serviços", href: "#services" },
     { name: "Equipamentos", href: "#equipment" },
     { name: "Preços", href: "#pricing" },
+    { name: "FAQ", href: "#faq" },
     { name: "Contato", href: "#contact" },
   ];
 
@@ -113,14 +116,16 @@ const Hero = () => {
             src={images[currentIndex]} 
             alt={`Estúdio de Podcast em São Paulo - Paleta Estúdios - Foto ${currentIndex + 1}`} 
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.5 }}
+            animate={{ opacity: 0.95 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 1.5 }}
             className="absolute inset-0 w-full h-full object-cover"
+            style={{ willChange: 'opacity' }}
+            referrerPolicy="no-referrer"
           />
         </AnimatePresence>
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/40 to-[#0a0a0a]"></div>
+        <div className="absolute inset-0 bg-black/5"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-[#0a0a0a]"></div>
       </div>
 
       <div className="relative z-10 text-center px-6 max-w-4xl">
@@ -229,6 +234,7 @@ const About = () => {
               exit={{ opacity: 0 }}
               transition={{ duration: 1 }}
               className="absolute inset-0 w-full h-full object-cover"
+              referrerPolicy="no-referrer"
             />
           </AnimatePresence>
           <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/60 to-transparent"></div>
@@ -372,14 +378,12 @@ const Equipment = () => {
         </div>
 
         <div className="relative rounded-3xl overflow-hidden bg-brand-surface p-8 border border-white/5">
-          <motion.img 
-            key={activeCategory}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            src={categories[activeCategory].image} 
-            alt={categories[activeCategory].name} 
-            className="w-full h-auto rounded-2xl shadow-2xl"
-          />
+            <img 
+              key={activeCategory}
+              src={categories[activeCategory].image} 
+              alt={categories[activeCategory].name} 
+              className="w-full h-auto rounded-2xl shadow-2xl"
+            />
           <div className="absolute top-12 right-12 w-32 h-32 bg-blue-500/20 blur-3xl rounded-full"></div>
         </div>
       </div>
@@ -397,80 +401,56 @@ const News = () => {
     "https://i.postimg.cc/dkBv1NS3/DSC5289.jpg",
     "https://i.postimg.cc/475Zd2Fk/DSC5338.jpg",
     "https://i.postimg.cc/ZBcZRsDz/DSC5377.jpg",
-    "https://i.postimg.cc/34B7RfbT/DSC5379.jpg",
     "https://i.postimg.cc/ZBcZRsDZ/DSC5384.jpg"
   ];
 
-  // Duplicate images for infinite scroll effect
   const duplicatedImages = [...newsImages, ...newsImages];
 
   return (
-    <section id="news" className="py-24 overflow-hidden bg-black/20">
+    <section id="news" className="py-24 bg-brand-surface/20">
       <div className="max-w-7xl mx-auto px-6 mb-16">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-        >
-          <h2 className="text-sm font-bold tracking-widest text-purple-500 uppercase mb-4">Novidades</h2>
-          <h3 className="text-4xl md:text-5xl font-bold">Podcasts que já passaram por aqui</h3>
-          <p className="text-white/50 mt-4 max-w-2xl text-lg">
+        <div className="text-center md:text-left">
+          <h2 className="text-sm font-bold tracking-widest text-purple-500 uppercase mb-4">Portfólio</h2>
+          <h3 className="text-4xl md:text-5xl font-bold mb-6">Podcasts que já passaram por aqui</h3>
+          <p className="text-white/50 max-w-2xl text-lg">
             Grandes nomes e conversas inesquecíveis. O Estúdio Paleta é a casa dos criadores de conteúdo.
           </p>
-        </motion.div>
+        </div>
       </div>
       
-      <div className="relative flex overflow-hidden group">
-        {/* Infinite Auto-scrolling Track */}
+      <div className="relative flex overflow-hidden">
         <motion.div 
-          className="flex gap-8 whitespace-nowrap"
-          animate={{ 
-            x: [0, -2500] 
-          }}
+          className="flex gap-4 md:gap-8 whitespace-nowrap"
+          animate={{ x: ["0%", "-50%"] }}
           transition={{ 
-            duration: 40, 
+            duration: 50, 
             repeat: Infinity, 
-            ease: "linear",
-            repeatType: "loop"
+            ease: "linear" 
           }}
-          style={{ width: "fit-content" }}
         >
           {duplicatedImages.map((img, i) => (
-            <motion.div 
+            <div 
               key={i}
-              className="relative w-[350px] md:w-[550px] aspect-[4/3] rounded-[2rem] overflow-hidden flex-shrink-0 border border-white/5 shadow-2xl"
-              whileHover={{ scale: 0.98, transition: { duration: 0.4 } }}
+              className="relative w-[300px] md:w-[600px] aspect-video rounded-3xl overflow-hidden flex-shrink-0 shadow-2xl"
             >
               <img 
                 src={img} 
                 alt={`Podcast ${i + 1}`} 
-                className="w-full h-full object-cover brightness-90 group-hover:brightness-100 transition-all duration-700"
-                loading="lazy"
+                className="w-full h-full object-cover"
+                loading="eager"
+                referrerPolicy="no-referrer"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500"></div>
-              <div className="absolute bottom-0 left-0 p-8 w-full">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+              <div className="absolute bottom-0 left-0 p-6 md:p-10 w-full">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-8 h-[1px] bg-purple-500"></div>
                   <span className="text-[10px] uppercase tracking-[0.2em] text-purple-400 font-bold">Gravação Realizada</span>
                 </div>
-                <p className="text-white text-xl font-bold tracking-tight">Paleta Estúdios</p>
+                <p className="text-white text-xl md:text-2xl font-bold">Paleta Estúdios</p>
               </div>
-            </motion.div>
+            </div>
           ))}
         </motion.div>
-
-        {/* Overlay for smooth edges */}
-        <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[#0a0a0a] to-transparent z-10 pointer-events-none"></div>
-        <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#0a0a0a] to-transparent z-10 pointer-events-none"></div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-6 mt-16 flex justify-between items-center">
-        <div className="flex gap-4">
-          <div className="w-12 h-[2px] bg-purple-500"></div>
-          <div className="w-8 h-[2px] bg-white/10"></div>
-          <div className="w-4 h-[2px] bg-white/10"></div>
-        </div>
-        <p className="text-white/30 text-xs font-mono uppercase tracking-widest">Arraste ou role para explorar</p>
       </div>
     </section>
   );
@@ -592,6 +572,78 @@ const Contact = () => {
   );
 };
 
+const FAQ = () => {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  const faqs = [
+    {
+      question: "Onde fica o estúdio de podcast Paleta Estúdios?",
+      answer: "O Paleta Estúdios está localizado no Largo do Paissandú, 72, no Centro Histórico de São Paulo, SP. É um ponto estratégico com fácil acesso por transporte público e toda a infraestrutura do centro da cidade."
+    },
+    {
+      question: "Quais serviços o Paleta Estúdios oferece?",
+      answer: "Oferecemos aluguel de estúdio para podcast, produção de podcast corporativo, gravação de lives profissionais, podcast móvel (levamos o estúdio até você) e edição completa de cortes para redes sociais como Reels, TikTok e YouTube Shorts."
+    },
+    {
+      question: "Como funciona o aluguel de estúdio de podcast?",
+      answer: "O aluguel pode ser feito por hora ou por pacotes de episódios. Incluímos toda a estrutura técnica: microfones Shure, câmeras 4K, iluminação profissional e um técnico para acompanhar a gravação."
+    },
+    {
+      question: "Vocês fazem podcast corporativo?",
+      answer: "Sim! Somos especialistas em podcast corporativo em São Paulo. Ajudamos empresas a criarem autoridade através de conteúdo em áudio e vídeo de alta qualidade, cuidando de toda a parte técnica e de edição."
+    },
+    {
+      question: "O estúdio é climatizado e tem tratamento acústico?",
+      answer: "Sim, nosso estúdio conta com isolamento acústico profissional e ar-condicionado silencioso para garantir que sua gravação tenha a melhor qualidade sonora possível, sem ruídos externos."
+    }
+  ];
+
+  return (
+    <section id="faq" className="py-24 bg-brand-surface/20">
+      <div className="max-w-4xl mx-auto px-6">
+        <div className="text-center mb-16">
+          <h2 className="text-sm font-bold tracking-widest text-orange-500 uppercase mb-4">Dúvidas Frequentes</h2>
+          <h3 className="text-4xl font-bold">Perguntas Comuns</h3>
+        </div>
+
+        <div className="space-y-4">
+          {faqs.map((faq, index) => (
+            <div 
+              key={index} 
+              className="rounded-2xl glass border border-white/5 overflow-hidden transition-all duration-300"
+            >
+              <button 
+                onClick={() => setOpenIndex(openIndex === index ? null : index)}
+                className="w-full p-6 text-left flex items-center justify-between hover:bg-white/5 transition-colors"
+              >
+                <span className="font-bold text-lg pr-8">{faq.question}</span>
+                <ChevronDown 
+                  size={20} 
+                  className={`text-orange-500 transition-transform duration-300 ${openIndex === index ? "rotate-180" : ""}`} 
+                />
+              </button>
+              <AnimatePresence>
+                {openIndex === index && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="px-6 pb-6 text-white/60 leading-relaxed border-t border-white/5 pt-4">
+                      {faq.answer}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const Map = () => {
   return (
     <section className="py-24 bg-brand-surface/20">
@@ -685,6 +737,7 @@ export default function App() {
       <Equipment />
       <News />
       <Pricing />
+      <FAQ />
       <Contact />
       <Map />
       <Footer />

@@ -16,6 +16,10 @@
   body {
     @apply bg-brand-dark text-white font-sans antialiased scroll-smooth;
   }
+  
+  img {
+    @apply antialiased;
+  }
 }
 
 .glass {
