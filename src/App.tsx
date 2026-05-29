@@ -22,6 +22,10 @@ import {
   X
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { Settings } from "lucide-react";
+import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
+import { db } from "./firebase";
+import AdminPanel from "./components/AdminPanel";
 
 // --- Components ---
 
@@ -83,8 +87,8 @@ const Navbar = () => {
   );
 };
 
-const Hero = () => {
-  const images = [
+const Hero = ({ images: dbImages }: { images?: string[] }) => {
+  const defaultImages = [
     "https://i.postimg.cc/zvZpjG3t/DSC1385.jpg",
     "https://i.postimg.cc/PfYSqYRx/DSC1378.jpg",
     "https://i.postimg.cc/Y0K83Cjd/DSC1386.jpg",
@@ -99,10 +103,16 @@ const Hero = () => {
     "https://i.postimg.cc/NjfDbVfX/DSC1353.jpg",
     "https://i.postimg.cc/m2SVYR4p/DSC1366.jpg"
   ];
+  const images = dbImages && dbImages.length > 0 ? dbImages : defaultImages;
 
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
+    setCurrentIndex(0);
+  }, [images.length]);
+
+  useEffect(() => {
+    if (images.length <= 1) return;
     const timer = setInterval(() => {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
     }, 5000);
@@ -161,8 +171,8 @@ const Hero = () => {
   );
 };
 
-const About = () => {
-  const images = [
+const About = ({ images: dbImages }: { images?: string[] }) => {
+  const defaultImages = [
     "https://i.postimg.cc/PfYSqYRx/DSC1378.jpg",
     "https://i.postimg.cc/Y0K83Cjd/DSC1386.jpg",
     "https://i.postimg.cc/8CYZ7HGj/DSC1388.jpg",
@@ -176,10 +186,16 @@ const About = () => {
     "https://i.postimg.cc/NjfDbVfX/DSC1353.jpg",
     "https://i.postimg.cc/m2SVYR4p/DSC1366.jpg"
   ];
+  const images = dbImages && dbImages.length > 0 ? dbImages : defaultImages;
 
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
+    setCurrentIndex(0);
+  }, [images.length]);
+
+  useEffect(() => {
+    if (images.length <= 1) return;
     const timer = setInterval(() => {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
     }, 4000);
@@ -393,11 +409,18 @@ const Equipment = () => {
   );
 };
 
-const News = () => {
+interface PortfolioItemData {
+  src: string;
+  title: string;
+  videoUrl?: string;
+  youtubeUrl?: string;
+}
+
+const News = ({ items: dbItems }: { items?: PortfolioItemData[] }) => {
   const [activeMedia, setActiveMedia] = useState<{ src: string; title: string; videoUrl?: string; youtubeUrl?: string } | null>(null);
   const [isHovered, setIsHovered] = useState(false);
 
-  const items = [
+  const defaultItems = [
     {
       src: "https://img.youtube.com/vi/I974rqPXlVM/maxresdefault.jpg",
       title: "Mañez Talks",
@@ -456,6 +479,7 @@ const News = () => {
     }
   ];
 
+  const items = dbItems && dbItems.length > 0 ? dbItems : defaultItems;
   const duplicatedItems = [...items, ...items];
 
   return (
@@ -874,7 +898,7 @@ const Map = () => {
   );
 };
 
-const Footer = () => {
+const Footer = ({ onAdminClick }: { onAdminClick: () => void }) => {
   return (
     <footer className="py-16 border-t border-white/5">
       <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-12">
@@ -922,8 +946,14 @@ const Footer = () => {
           </ul>
         </div>
       </div>
-      <div className="max-w-7xl mx-auto px-6 mt-16 pt-8 border-t border-white/5 text-center text-xs text-white/20">
-        © 2024 Paleta Estúdios. Todos os direitos reservados.
+      <div className="max-w-7xl mx-auto px-6 mt-16 pt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/20">
+        <div>© 2024 Paleta Estúdios. Todos os direitos reservados.</div>
+        <button 
+          onClick={onAdminClick}
+          className="hover:text-[#f27d26] text-white/40 transition-colors cursor-pointer flex items-center gap-1.5 font-semibold text-xs"
+        >
+          <Settings size={12} /> Painel Administrativo
+        </button>
       </div>
     </footer>
   );
@@ -932,19 +962,89 @@ const Footer = () => {
 // --- Main App ---
 
 export default function App() {
+  const [view, setView] = useState<"public" | "admin">("public");
+
+  // Load Firestore data in App state to distribute to widgets dynamically
+  const [bannerImages, setBannerImages] = useState<string[]>([]);
+  const [dnaImages, setDnaImages] = useState<string[]>([]);
+  const [portfolioItems, setPortfolioItems] = useState<PortfolioItemData[]>([]);
+
+  useEffect(() => {
+    // 1. Fetch Banners
+    const unsubBanners = onSnapshot(
+      query(collection(db, "banner_images"), orderBy("order", "asc")),
+      (snapshot) => {
+        const urls = snapshot.docs.map(doc => doc.data().url as string).filter(Boolean);
+        setBannerImages(urls);
+      },
+      (error) => {
+        console.warn("Could not load banners from Firestore. Fallback will be served.", error);
+      }
+    );
+
+    // 2. Fetch DNA Images
+    const unsubDNA = onSnapshot(
+      query(collection(db, "nosso_dna_images"), orderBy("order", "asc")),
+      (snapshot) => {
+        const urls = snapshot.docs.map(doc => doc.data().url as string).filter(Boolean);
+        setDnaImages(urls);
+      },
+      (error) => {
+        console.warn("Could not load DNA images from Firestore. Fallback will be served.", error);
+      }
+    );
+
+    // 3. Fetch Portfolio Slides
+    const unsubPort = onSnapshot(
+      query(collection(db, "portfolio_items"), orderBy("order", "asc")),
+      (snapshot) => {
+        const items = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            src: data.src,
+            title: data.title,
+            videoUrl: data.videoUrl || undefined,
+            youtubeUrl: data.youtubeUrl || undefined,
+          };
+        });
+        setPortfolioItems(items);
+      },
+      (error) => {
+        console.warn("Could not load portfolio from Firestore. Fallback will be served.", error);
+      }
+    );
+
+    return () => {
+      unsubBanners();
+      unsubDNA();
+      unsubPort();
+    };
+  }, []);
+
+  // Jump to top when toggling views for pristine transition feel
+  const handleToggleView = (newView: "public" | "admin") => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setView(newView);
+  };
+
+  if (view === "admin") {
+    return <AdminPanel onBack={() => handleToggleView("public")} />;
+  }
+
   return (
     <div className="min-h-screen">
       <Navbar />
-      <Hero />
-      <About />
+      <Hero images={bannerImages} />
+      <About images={dnaImages} />
       <Services />
       <Equipment />
-      <News />
+      <News items={portfolioItems} />
       <Pricing />
       <FAQ />
       <Contact />
       <Map />
-      <Footer />
+      <Footer onAdminClick={() => handleToggleView("admin")} />
     </div>
   );
 }

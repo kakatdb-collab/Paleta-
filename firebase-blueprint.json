@@ -1,0 +1,93 @@
+{
+  "entities": {
+    "BannerImage": {
+      "title": "BannerImage",
+      "description": "An image used in the main home slider banner.",
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "The Unsplash or alternative image URL"
+        },
+        "order": {
+          "type": "number",
+          "description": "Sorting order"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation"
+        }
+      },
+      "required": ["url", "order", "createdAt"]
+    },
+    "DNAImage": {
+      "title": "DNAImage",
+      "description": "An image used in the 'Nosso DNA' slider.",
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Unsplash or custom image URL"
+        },
+        "order": {
+          "type": "number",
+          "description": "Sorting order"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation"
+        }
+      },
+      "required": ["url", "order", "createdAt"]
+    },
+    "PortfolioItem": {
+      "title": "PortfolioItem",
+      "description": "A photo or video item under the 'Portfólio de Gravações'.",
+      "type": "object",
+      "properties": {
+        "src": {
+          "type": "string",
+          "description": "Featured thumbnail image URL of the item"
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the episode/show"
+        },
+        "videoUrl": {
+          "type": "string",
+          "description": "Embed URL for YouTube video playback"
+        },
+        "youtubeUrl": {
+          "type": "string",
+          "description": "Direct dynamic link to original video context"
+        },
+        "order": {
+          "type": "number",
+          "description": "Sorting order"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp"
+        }
+      },
+      "required": ["src", "title", "order", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/banner_images/{id}": {
+      "schema": "BannerImage",
+      "description": "Homepage banner sliding photos"
+    },
+    "/nosso_dna_images/{id}": {
+      "schema": "DNAImage",
+      "description": "Nosso DNA sliding photos"
+    },
+    "/portfolio_items/{id}": {
+      "schema": "PortfolioItem",
+      "description": "Portfolio videos and photos"
+    }
+  }
+}

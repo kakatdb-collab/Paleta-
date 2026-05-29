@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'kakatdb@gmail.com';
+    }
+
+    // Capture fallback global denial
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Rules for banner_images
+    match /banner_images/{image} {
+      allow read: if true;
+      allow create: if isAdmin() &&
+                    request.resource.data.keys().hasAll(['url', 'order', 'createdAt']) &&
+                    request.resource.data.url is string &&
+                    request.resource.data.order is number;
+      allow update: if isAdmin() &&
+                    request.resource.data.keys().hasAll(['url', 'order', 'createdAt']) &&
+                    request.resource.data.url is string &&
+                    request.resource.data.order is number;
+      allow delete: if isAdmin();
+    }
+
+    // Rules for nosso_dna_images
+    match /nosso_dna_images/{image} {
+      allow read: if true;
+      allow create: if isAdmin() &&
+                    request.resource.data.keys().hasAll(['url', 'order', 'createdAt']) &&
+                    request.resource.data.url is string &&
+                    request.resource.data.order is number;
+      allow update: if isAdmin() &&
+                    request.resource.data.keys().hasAll(['url', 'order', 'createdAt']) &&
+                    request.resource.data.url is string &&
+                    request.resource.data.order is number;
+      allow delete: if isAdmin();
+    }
+
+    // Rules for portfolio_items
+    match /portfolio_items/{item} {
+      allow read: if true;
+      allow create: if isAdmin() &&
+                    request.resource.data.keys().hasAll(['src', 'title', 'order', 'createdAt']) &&
+                    request.resource.data.src is string &&
+                    request.resource.data.title is string &&
+                    request.resource.data.order is number;
+      allow update: if isAdmin() &&
+                    request.resource.data.keys().hasAll(['src', 'title', 'order', 'createdAt']) &&
+                    request.resource.data.src is string &&
+                    request.resource.data.title is string &&
+                    request.resource.data.order is number;
+      allow delete: if isAdmin();
+    }
+  }
+}
