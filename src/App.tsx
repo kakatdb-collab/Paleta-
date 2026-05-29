@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useMotionValue } from "motion/react";
 import { 
   Mic, 
   Video, 
@@ -17,7 +17,9 @@ import {
   Mail,
   CheckCircle2,
   HelpCircle,
-  ChevronDown
+  ChevronDown,
+  Play,
+  X
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -392,66 +394,268 @@ const Equipment = () => {
 };
 
 const News = () => {
-  const newsImages = [
-    "https://i.postimg.cc/620w3b17/DSC08346.jpg",
-    "https://i.postimg.cc/XG83J1Dr/DSC09126.jpg",
-    "https://i.postimg.cc/0MfxQXHk/DSC09194.jpg",
-    "https://i.postimg.cc/5Y310Kk9/DSC09216.jpg",
-    "https://i.postimg.cc/VrR16ZHd/DSC5257.jpg",
-    "https://i.postimg.cc/dkBv1NS3/DSC5289.jpg",
-    "https://i.postimg.cc/475Zd2Fk/DSC5338.jpg",
-    "https://i.postimg.cc/ZBcZRsDz/DSC5377.jpg",
-    "https://i.postimg.cc/ZBcZRsDZ/DSC5384.jpg"
+  const [activeMedia, setActiveMedia] = useState<{ src: string; title: string; videoUrl?: string; youtubeUrl?: string } | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const items = [
+    {
+      src: "https://img.youtube.com/vi/I974rqPXlVM/maxresdefault.jpg",
+      title: "Mañez Talks",
+      videoUrl: "https://www.youtube.com/embed/I974rqPXlVM?list=PLrGJcV096sHnDb2CnzLQHlBCHS84FBHMx&autoplay=1",
+      youtubeUrl: "https://www.youtube.com/watch?v=I974rqPXlVM&list=PLrGJcV096sHnDb2CnzLQHlBCHS84FBHMx"
+    },
+    {
+      src: "https://pod.paletaestudios.com.br/assets/img/IMG_2832.jpg",
+      title: "Mañez Talks"
+    },
+    {
+      src: "https://pod.paletaestudios.com.br/assets/img/IMG_2822.jpg",
+      title: "Ação…"
+    },
+    {
+      src: "https://img.youtube.com/vi/XgQgFFTf_LY/maxresdefault.jpg",
+      title: "Evoluir ou Desistir - Erick Vieira - Vieira Cred - Grupo Vieira",
+      videoUrl: "https://www.youtube.com/embed/XgQgFFTf_LY?autoplay=1",
+      youtubeUrl: "https://www.youtube.com/watch?v=XgQgFFTf_LY&t=1s"
+    },
+    {
+      src: "https://pod.paletaestudios.com.br/assets/img/IMG_0039.jpg",
+      title: "Estúdio Paleta"
+    },
+    {
+      src: "https://pod.paletaestudios.com.br/assets/img/IMG_1652.jpg",
+      title: "Pacheco & Lima"
+    },
+    {
+      src: "https://img.youtube.com/vi/8rH21rQDWro/maxresdefault.jpg",
+      title: "PACHECO LIMA ADVOGADOS",
+      videoUrl: "https://www.youtube.com/embed/8rH21rQDWro?autoplay=1",
+      youtubeUrl: "https://www.youtube.com/watch?v=8rH21rQDWro"
+    },
+    {
+      src: "https://pod.paletaestudios.com.br/assets/img/DSC09216.jpg",
+      title: "Nexus Cast"
+    },
+    {
+      src: "https://pod.paletaestudios.com.br/assets/img/DSC08346.jpg",
+      title: "I9TV"
+    },
+    {
+      src: "https://img.youtube.com/vi/bLIWzZDu3Gc/maxresdefault.jpg",
+      title: "Paulo Roca - Nexus Cast",
+      videoUrl: "https://www.youtube.com/embed/bLIWzZDu3Gc?autoplay=1",
+      youtubeUrl: "https://www.youtube.com/watch?v=bLIWzZDu3Gc&t=2430s"
+    },
+    {
+      src: "https://pod.paletaestudios.com.br/assets/img/DSC5377.jpg",
+      title: "Nexus Cast"
+    },
+    {
+      src: "https://pod.paletaestudios.com.br/assets/img/_DSC0890.jpg",
+      title: "Mañez Talks"
+    }
   ];
 
-  const duplicatedImages = [...newsImages, ...newsImages];
+  const duplicatedItems = [...items, ...items];
 
   return (
-    <section id="news" className="py-24 bg-brand-surface/20">
-      <div className="max-w-7xl mx-auto px-6 mb-16">
-        <div className="text-center md:text-left">
-          <h2 className="text-sm font-bold tracking-widest text-purple-500 uppercase mb-4">Portfólio</h2>
-          <h3 className="text-4xl md:text-5xl font-bold mb-6">Podcasts que já passaram por aqui</h3>
-          <p className="text-white/50 max-w-2xl text-lg">
-            Grandes nomes e conversas inesquecíveis. O Estúdio Paleta é a casa dos criadores de conteúdo.
-          </p>
+    <section id="news" className="relative py-24 bg-brand-surface/20 overflow-hidden">
+      <style>{`
+        @keyframes scroll-right {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+
+        .infinite-scroll {
+          animation: scroll-right 30s linear infinite;
+        }
+
+        .scroll-container {
+          mask: linear-gradient(
+            90deg,
+            transparent 0%,
+            black 10%,
+            black 90%,
+            transparent 100%
+          );
+          -webkit-mask: linear-gradient(
+            90deg,
+            transparent 0%,
+            black 10%,
+            black 90%,
+            transparent 100%
+          );
+        }
+
+        .image-item {
+          transition: transform 0.3s ease, filter 0.3s ease;
+        }
+
+        .image-item:hover {
+          transform: scale(1.05);
+          filter: brightness(1.1);
+        }
+      `}</style>
+      
+      <div className="absolute inset-0 max-md:hidden top-[150px] -z-10 h-[300px] w-full bg-transparent bg-[linear-gradient(to_right,#57534e_1px,transparent_1px),linear-gradient(to_bottom,#57534e_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-20 [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)] dark:bg-[linear-gradient(to_right,#a8a29e_1px,transparent_1px),linear-gradient(to_bottom,#a8a29e_1px,transparent_1px)]"></div>
+      
+      <div className="max-w-7xl mx-auto px-6 mb-16 text-center">
+        <p className="text-sm font-bold tracking-widest text-orange-500 uppercase mb-4">
+          Portfólio de Gravações
+        </p>
+        <h3 className="z-20 mx-auto max-w-3xl justify-center bg-gradient-to-r from-white via-white/80 to-white bg-clip-text py-3 text-center text-4xl text-transparent md:text-6xl font-bold font-sans tracking-tight">
+          Nossa Galeria de <span className="text-orange-500">Histórias</span>
+        </h3>
+        <p className="text-white/50 max-w-2xl mx-auto text-lg mt-2">
+          Grandes nomes e conversas inesquecíveis. O Estúdio Paleta é a casa dos criadores de conteúdo.
+        </p>
+      </div>
+
+      {/* Scrolling images container */}
+      <div 
+        className="relative z-10 w-full flex items-center justify-center py-8"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div className="scroll-container w-full max-w-7xl">
+          <div 
+            className="infinite-scroll flex gap-6 w-max"
+            style={{ animationPlayState: (isHovered || activeMedia) ? 'paused' : 'running' }}
+          >
+            {duplicatedItems.map((item, index) => (
+              <div
+                key={index}
+                className="image-item flex-shrink-0 w-48 h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 rounded-2xl overflow-hidden shadow-2xl border border-white/5 relative group cursor-pointer"
+                onClick={() => setActiveMedia(item)}
+              >
+                <img
+                  src={item.src}
+                  alt={`${item.title} - Gallery image ${(index % items.length) + 1}`}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+                
+                {/* Overlay play indicator for video items */}
+                {item.videoUrl && (
+                  <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                    <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-orange-500/95 flex items-center justify-center shadow-lg shadow-orange-500/30 text-white transform group-hover:scale-110 transition-transform duration-300">
+                      <Play size={24} className="fill-current ml-1" />
+                    </div>
+                  </div>
+                )}
+
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-4 md:p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-orange-500 font-bold">
+                      {item.videoUrl ? "Assistir Vídeo" : "Gravação Realizada"}
+                    </span>
+                  </div>
+                  <p className="text-white text-base md:text-xl font-bold truncate">{item.title}</p>
+                </div>
+                
+                {/* Always-on minimal tag at the bottom */}
+                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 group-hover:opacity-0 transition-opacity duration-300">
+                  <span className="text-xs text-white/90 font-medium font-sans truncate">{item.title}</span>
+                  <div className={`w-1.5 h-1.5 rounded-full ${item.videoUrl ? 'bg-red-500' : 'bg-orange-500'} animate-pulse flex-shrink-0 ml-1`} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-      
-      <div className="relative flex overflow-hidden">
-        <motion.div 
-          className="flex gap-4 md:gap-8 whitespace-nowrap"
-          animate={{ x: ["0%", "-50%"] }}
-          transition={{ 
-            duration: 50, 
-            repeat: Infinity, 
-            ease: "linear" 
-          }}
+
+      <div className="flex w-full justify-center mt-12 z-20 relative">
+        <a 
+          href="#contact" 
+          className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white px-8 py-4 rounded-full font-bold hover:from-orange-600 hover:to-amber-600 transition-all shadow-lg hover:shadow-orange-500/20 hover:scale-[1.02]"
         >
-          {duplicatedImages.map((img, i) => (
-            <div 
-              key={i}
-              className="relative w-[300px] md:w-[600px] aspect-video rounded-3xl overflow-hidden flex-shrink-0 shadow-2xl"
-            >
-              <img 
-                src={img} 
-                alt={`Podcast ${i + 1}`} 
-                className="w-full h-full object-cover"
-                loading="eager"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-              <div className="absolute bottom-0 left-0 p-6 md:p-10 w-full">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-[1px] bg-purple-500"></div>
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-purple-400 font-bold">Gravação Realizada</span>
-                </div>
-                <p className="text-white text-xl md:text-2xl font-bold">Paleta Estúdios</p>
-              </div>
-            </div>
-          ))}
-        </motion.div>
+          Ver Todos os Episódios <ChevronRight size={20} />
+        </a>
       </div>
+
+      {/* Lightbox / Media Player Overlay Modal */}
+      <AnimatePresence>
+        {activeMedia && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+            onClick={() => setActiveMedia(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-4xl bg-brand-surface rounded-3xl overflow-hidden border border-white/10 shadow-2xl flex flex-col"
+            >
+              <button
+                className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-white hover:bg-orange-500 hover:text-white transition-colors cursor-pointer"
+                onClick={() => setActiveMedia(null)}
+              >
+                <X size={20} />
+              </button>
+
+              <div className="p-2 md:p-4">
+                <div className="w-full aspect-video rounded-2xl overflow-hidden bg-black flex items-center justify-center relative">
+                  {activeMedia.videoUrl ? (
+                    <iframe
+                      src={activeMedia.videoUrl}
+                      title={activeMedia.title}
+                      className="w-full h-full border-0 absolute inset-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <img
+                      src={activeMedia.src}
+                      alt={activeMedia.title}
+                      className="max-h-[70vh] w-full h-full object-contain"
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="px-6 py-4 bg-black/40 border-t border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-orange-400 font-bold">
+                      {activeMedia.videoUrl ? "EPISÓDIO NO AR" : "FOTO DE PORTFÓLIO"}
+                    </span>
+                  </div>
+                  <h4 className="text-white text-lg md:text-xl font-bold">{activeMedia.title}</h4>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setActiveMedia(null)}
+                    className="px-6 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-medium text-sm transition-colors cursor-pointer"
+                  >
+                    Fechar
+                  </button>
+                  {activeMedia.videoUrl && (
+                    <a
+                      href={activeMedia.youtubeUrl || "https://www.youtube.com"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                    >
+                      Ver no YouTube <ChevronRight size={14} />
+                    </a>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };
