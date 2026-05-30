@@ -37,6 +37,7 @@ import {
   GoogleAuthProvider, 
   signOut, 
   onAuthStateChanged,
+  createUserWithEmailAndPassword,
   User 
 } from "firebase/auth";
 import { db, auth, handleFirestoreError, OperationType } from "../firebase";
@@ -239,6 +240,8 @@ interface AdminPanelProps {
   onBack: () => void;
 }
 
+const ADMIN_EMAILS = ["kakatdb@gmail.com", "jefersonti@hotmail.com"];
+
 export default function AdminPanel({ onBack }: AdminPanelProps) {
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState("");
@@ -294,7 +297,7 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
 
   // Listen to Firestore events only if authorized/loaded
   useEffect(() => {
-    if (!user || user.email !== "kakatdb@gmail.com") return;
+    if (!user || !user.email || !ADMIN_EMAILS.includes(user.email.toLowerCase())) return;
 
     const unsubBanners = onSnapshot(
       query(collection(db, "banner_images"), orderBy("order", "asc")),
@@ -341,7 +344,7 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
 
   // Check if collections are empty to display the Seeding assistant
   useEffect(() => {
-    if (!user || user.email !== "kakatdb@gmail.com") return;
+    if (!user || !user.email || !ADMIN_EMAILS.includes(user.email.toLowerCase())) return;
     
     const checkDbStatus = async () => {
       try {
@@ -368,11 +371,29 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
     setAuthError("");
     setIsActionLoading(true);
 
+    const lowercaseEmail = email.trim().toLowerCase();
+
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, lowercaseEmail, password);
       showFeedback("success", "Login realizado com sucesso!");
     } catch (error: any) {
-      console.error(error);
+      console.error("Erro na tentativa inicial de login:", error);
+      
+      const isAllowedAdmin = ADMIN_EMAILS.includes(lowercaseEmail);
+      const canAutoSignup = error.code === "auth/user-not-found" || error.code === "auth/invalid-credential" || error.code === "auth/user-disabled";
+      
+      if (isAllowedAdmin && canAutoSignup) {
+        try {
+          console.log("Registrando e-mail de administrador automaticamente no Firebase auth...");
+          await createUserWithEmailAndPassword(auth, lowercaseEmail, password);
+          showFeedback("success", "Sua credencial de administrador foi cadastrada e logada!");
+          setIsActionLoading(false);
+          return;
+        } catch (signupError: any) {
+          console.error("Erro ao registrar admin automaticamente:", signupError);
+        }
+      }
+
       let errorMsg = "Ocorreu um erro ao fazer login. Verifique as credenciais.";
       if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
         errorMsg = "Login ou senha incorretos.";
@@ -882,7 +903,7 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
     );
   }
 
-  const isAuthorized = user && user.email === "kakatdb@gmail.com";
+  const isAuthorized = !!user && !!user.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
 
   if (!isAuthorized) {
     return (
@@ -922,7 +943,7 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
               <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-sm mb-6 text-amber-300">
                 <p className="font-semibold mb-1">Acesso Restrito</p>
                 <p className="text-xs text-white/50">Logado como: <span className="text-white font-mono">{user.email}</span></p>
-                <p className="text-xs text-white/60 mt-2">Apenas o e-mail de administrador <span className="text-white font-bold">kakatdb@gmail.com</span> pode acessar este painel.</p>
+                <p className="text-xs text-white/60 mt-2">Apenas e-mails administradores autorizados têm acesso a este painel.</p>
               </div>
               <button
                 onClick={handleSignOut}

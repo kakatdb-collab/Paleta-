@@ -8,7 +8,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && request.auth.token.email == 'kakatdb@gmail.com';
+      return isSignedIn() && (request.auth.token.email == 'kakatdb@gmail.com' || request.auth.token.email == 'jefersonti@hotmail.com');
     }
 
     // Capture fallback global denial
