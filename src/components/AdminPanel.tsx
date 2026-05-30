@@ -44,6 +44,7 @@ import { db, auth, handleFirestoreError, OperationType } from "../firebase";
 
 // Automatic YouTube URL parser with robust fallbacks
 function parseYoutubeUrl(url: string) {
+  if (!url) return null;
   let videoId = "";
   let listId = "";
 
@@ -54,21 +55,16 @@ function parseYoutubeUrl(url: string) {
     }
   } catch (e) {}
 
-  if (url.includes("youtu.be/")) {
-    const parts = url.split("youtu.be/");
-    if (parts[1]) {
-      videoId = parts[1].split(/[?#]/)[0];
-    }
-  } else if (url.includes("embed/")) {
-    const parts = url.split("embed/");
-    if (parts[1]) {
-      videoId = parts[1].split(/[?#]/)[0];
-    }
+  const cleanUrl = url.trim();
+  const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts|live)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
+  const match = cleanUrl.match(regExp);
+
+  if (match && match[1]) {
+    videoId = match[1];
   } else {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    if (match && match[2].length === 11) {
-      videoId = match[2];
+    const fallbackMatch = cleanUrl.match(/^[a-zA-Z0-9_-]{11}$/);
+    if (fallbackMatch) {
+      videoId = cleanUrl;
     }
   }
 
@@ -463,6 +459,7 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
     try {
       await signOut(auth);
       showFeedback("success", "Sessão encerrada.");
+      onBack(); // Go straight back to the public site on exit/signout
     } catch (err) {
       console.error(err);
     }
@@ -855,15 +852,18 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
   };
 
   const saveEditPortfolio = async (id: string) => {
-    if (!editPortTitle.trim() || !editPortSrc.trim()) return;
+    if (!editPortTitle.trim()) return;
     setIsActionLoading(true);
     try {
-      let isVideo = !!editPortYoutube;
+      let isVideo = !!editPortYoutube.trim();
       const parsed = isVideo ? parseYoutubeUrl(editPortYoutube) : null;
       
+      // If we have a reliable youtube parsed object, use its src, otherwise fallback to editPortSrc or default empty string
+      const finalSrc = parsed ? parsed.src : (editPortSrc.trim() || "https://img.youtube.com/vi/I974rqPXlVM/maxresdefault.jpg");
+
       const payload: Partial<PortfolioItem> = {
         title: editPortTitle.trim(),
-        src: parsed ? parsed.src : editPortSrc.trim()
+        src: finalSrc
       };
 
       if (isVideo) {

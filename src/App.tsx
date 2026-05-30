@@ -8,6 +8,7 @@ import {
   Building2, 
   Camera, 
   Lightbulb, 
+  ChevronLeft,
   ChevronRight,
   Instagram,
   Facebook,
@@ -21,7 +22,7 @@ import {
   Play,
   X
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Settings } from "lucide-react";
 import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
@@ -409,7 +410,42 @@ const Equipment = () => {
   );
 };
 
+// Automatic YouTube URL parser with robust fallbacks
+function parseYoutubeUrl(url: string) {
+  if (!url) return null;
+  let videoId = "";
+  let listId = "";
+
+  try {
+    const listMatch = url.match(/[?&]list=([^#\&\?]+)/);
+    if (listMatch) {
+      listId = listMatch[1];
+    }
+  } catch (e) {}
+
+  const cleanUrl = url.trim();
+  const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts|live)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
+  const match = cleanUrl.match(regExp);
+
+  if (match && match[1]) {
+    videoId = match[1];
+  } else {
+    const fallbackMatch = cleanUrl.match(/^[a-zA-Z0-9_-]{11}$/);
+    if (fallbackMatch) {
+      videoId = cleanUrl;
+    }
+  }
+
+  if (videoId) {
+    const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1${listId ? `&list=${listId}` : ""}`;
+    const src = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+    return { videoId, embedUrl, src };
+  }
+  return null;
+}
+
 interface PortfolioItemData {
+  id?: string;
   src: string;
   title: string;
   videoUrl?: string;
@@ -418,7 +454,7 @@ interface PortfolioItemData {
 
 const News = ({ items: dbItems }: { items?: PortfolioItemData[] }) => {
   const [activeMedia, setActiveMedia] = useState<{ src: string; title: string; videoUrl?: string; youtubeUrl?: string } | null>(null);
-  const [isHovered, setIsHovered] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const defaultItems = [
     {
@@ -480,24 +516,22 @@ const News = ({ items: dbItems }: { items?: PortfolioItemData[] }) => {
   ];
 
   const items = dbItems && dbItems.length > 0 ? dbItems : defaultItems;
-  const duplicatedItems = [...items, ...items];
+
+  const scroll = (direction: "left" | "right") => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, clientWidth } = scrollContainerRef.current;
+      const scrollAmount = clientWidth * 0.75;
+      const targetScroll = direction === "left" ? scrollLeft - scrollAmount : scrollLeft + scrollAmount;
+      scrollContainerRef.current.scrollTo({
+        left: targetScroll,
+        behavior: "smooth"
+      });
+    }
+  };
 
   return (
     <section id="news" className="relative py-24 bg-brand-surface/20 overflow-hidden">
       <style>{`
-        @keyframes scroll-right {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
-        }
-
-        .infinite-scroll {
-          animation: scroll-right 30s linear infinite;
-        }
-
         .scroll-container {
           mask: linear-gradient(
             90deg,
@@ -515,12 +549,20 @@ const News = ({ items: dbItems }: { items?: PortfolioItemData[] }) => {
           );
         }
 
+        .scrollbar-none::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-none {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+
         .image-item {
           transition: transform 0.3s ease, filter 0.3s ease;
         }
 
         .image-item:hover {
-          transform: scale(1.05);
+          transform: scale(1.03);
           filter: brightness(1.1);
         }
       `}</style>
@@ -539,29 +581,51 @@ const News = ({ items: dbItems }: { items?: PortfolioItemData[] }) => {
         </p>
       </div>
 
-      {/* Scrolling images container */}
-      <div 
-        className="relative z-10 w-full flex items-center justify-center py-8"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <div className="scroll-container w-full max-w-7xl">
+      {/* Interactive horizontal scroll slider */}
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-12 group/arrows">
+        {/* Navigation Arrows */}
+        <button
+          onClick={() => scroll("left")}
+          className="absolute left-1 md:left-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-black/75 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-orange-500 hover:border-orange-500 transition-all cursor-pointer shadow-lg hover:scale-105"
+          aria-label="Anterior"
+        >
+          <ChevronLeft size={20} />
+        </button>
+
+        <button
+          onClick={() => scroll("right")}
+          className="absolute right-1 md:right-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-black/75 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-orange-500 hover:border-orange-500 transition-all cursor-pointer shadow-lg hover:scale-105"
+          aria-label="Próximo"
+        >
+          <ChevronRight size={20} />
+        </button>
+
+        {/* Scrollable Track Container */}
+        <div className="scroll-container w-full overflow-hidden font-sans">
           <div 
-            className="infinite-scroll flex gap-6 w-max"
-            style={{ animationPlayState: (isHovered || activeMedia) ? 'paused' : 'running' }}
+            ref={scrollContainerRef}
+            className="scrollbar-none flex gap-5 overflow-x-auto py-4 scroll-smooth snap-x snap-mandatory"
           >
-            {duplicatedItems.map((item, index) => (
+            {items.map((item, index) => (
               <div
-                key={index}
-                className="image-item flex-shrink-0 w-48 h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 rounded-2xl overflow-hidden shadow-2xl border border-white/5 relative group cursor-pointer"
+                key={item.id || index}
+                className="image-item flex-shrink-0 w-60 h-60 md:w-72 md:h-72 lg:w-80 lg:h-80 rounded-2xl overflow-hidden shadow-2xl border border-white/5 relative group cursor-pointer snap-start"
                 onClick={() => setActiveMedia(item)}
               >
                 <img
                   src={item.src}
-                  alt={`${item.title} - Gallery image ${(index % items.length) + 1}`}
+                  alt={item.title}
                   className="w-full h-full object-cover"
                   loading="lazy"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const currentSrc = e.currentTarget.src;
+                    if (currentSrc.includes("maxresdefault.jpg")) {
+                      e.currentTarget.src = currentSrc.replace("maxresdefault.jpg", "hqdefault.jpg");
+                    } else if (currentSrc.includes("hqdefault.jpg")) {
+                      e.currentTarget.src = currentSrc.replace("hqdefault.jpg", "0.jpg");
+                    }
+                  }}
                 />
                 
                 {/* Overlay play indicator for video items */}
@@ -573,8 +637,8 @@ const News = ({ items: dbItems }: { items?: PortfolioItemData[] }) => {
                   </div>
                 )}
 
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-4 md:p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="flex items-center gap-2 mb-1">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent flex flex-col justify-end p-5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-sans">
+                  <div className="flex items-center gap-2 mb-1.5">
                     <span className="text-[10px] uppercase tracking-[0.2em] text-orange-500 font-bold">
                       {item.videoUrl ? "Assistir Vídeo" : "Gravação Realizada"}
                     </span>
@@ -583,7 +647,7 @@ const News = ({ items: dbItems }: { items?: PortfolioItemData[] }) => {
                 </div>
                 
                 {/* Always-on minimal tag at the bottom */}
-                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 group-hover:opacity-0 transition-opacity duration-300">
+                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between bg-black/55 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 group-hover:opacity-0 transition-opacity duration-300">
                   <span className="text-xs text-white/90 font-medium font-sans truncate">{item.title}</span>
                   <div className={`w-1.5 h-1.5 rounded-full ${item.videoUrl ? 'bg-red-500' : 'bg-orange-500'} animate-pulse flex-shrink-0 ml-1`} />
                 </div>
@@ -617,7 +681,7 @@ const News = ({ items: dbItems }: { items?: PortfolioItemData[] }) => {
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-4xl bg-brand-surface rounded-3xl overflow-hidden border border-white/10 shadow-2xl flex flex-col"
+              className="relative w-full max-w-4xl bg-brand-surface rounded-3xl overflow-hidden border border-white/10 shadow-2xl flex flex-col font-sans"
             >
               <button
                 className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-white hover:bg-orange-500 hover:text-white transition-colors cursor-pointer"
@@ -640,7 +704,7 @@ const News = ({ items: dbItems }: { items?: PortfolioItemData[] }) => {
                     <img
                       src={activeMedia.src}
                       alt={activeMedia.title}
-                      className="max-h-[70vh] w-full h-full object-contain"
+                      className="max-h-[70vh] w-full h-full object-contain animate-fade-in"
                       referrerPolicy="no-referrer"
                     />
                   )}
@@ -1000,12 +1064,37 @@ export default function App() {
       (snapshot) => {
         const items = snapshot.docs.map(doc => {
           const data = doc.data();
+          let src = data.src || "";
+          let videoUrl = data.videoUrl || undefined;
+          let youtubeUrl = data.youtubeUrl || undefined;
+
+          // Auto-heal if they pasted a YouTube link in the URL/src box but it didn't get parsed in backend
+          if (src.includes("youtube.com") || src.includes("youtu.be")) {
+            const parsed = parseYoutubeUrl(src);
+            if (parsed) {
+              src = parsed.src;
+              videoUrl = parsed.embedUrl;
+              youtubeUrl = data.src;
+            }
+          }
+
+          // Auto-heal if youtubeUrl is present but videoUrl is empty
+          if (youtubeUrl && !videoUrl) {
+            const parsed = parseYoutubeUrl(youtubeUrl);
+            if (parsed) {
+              if (!src || src.includes("youtube.com") || src.includes("youtu.be")) {
+                src = parsed.src;
+              }
+              videoUrl = parsed.embedUrl;
+            }
+          }
+
           return {
             id: doc.id,
-            src: data.src,
-            title: data.title,
-            videoUrl: data.videoUrl || undefined,
-            youtubeUrl: data.youtubeUrl || undefined,
+            src: src,
+            title: data.title || "",
+            videoUrl: videoUrl,
+            youtubeUrl: youtubeUrl,
           };
         });
         setPortfolioItems(items);
