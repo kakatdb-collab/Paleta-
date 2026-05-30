@@ -45,23 +45,49 @@ import { db, auth, handleFirestoreError, OperationType } from "../firebase";
 // Automatic YouTube URL parser with robust fallbacks
 function parseYoutubeUrl(url: string) {
   if (!url) return null;
+  const cleanUrl = url.trim();
+  
   let videoId = "";
   let listId = "";
 
+  // Extract list parameter if any
   try {
-    const listMatch = url.match(/[?&]list=([^#\&\?]+)/);
+    const listMatch = cleanUrl.match(/[?&]list=([^#\&\?]+)/);
     if (listMatch) {
       listId = listMatch[1];
     }
   } catch (e) {}
 
-  const cleanUrl = url.trim();
-  const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts|live)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
-  const match = cleanUrl.match(regExp);
+  // A list of regexes to cover all common configurations:
+  const patterns = [
+    /shorts\/([a-zA-Z0-9_-]{11})/,
+    /live\/([a-zA-Z0-9_-]{11})/,
+    /embed\/([a-zA-Z0-9_-]{11})/,
+    /v\/([a-zA-Z0-9_-]{11})/,
+    /vi\/([a-zA-Z0-9_-]{11})/,
+    /[?&]v=([a-zA-Z0-9_-]{11})/,
+    /youtu\.be\/([a-zA-Z0-9_-]{11})/
+  ];
 
-  if (match && match[1]) {
-    videoId = match[1];
-  } else {
+  for (const pattern of patterns) {
+    const match = cleanUrl.match(pattern);
+    if (match && match[1]) {
+      videoId = match[1];
+      break;
+    }
+  }
+
+  // Fallback 1: If URL has youtube, but didn't match standard patterns, look for watch/v/embed where id is at the end or surrounded
+  if (!videoId && (cleanUrl.includes("youtube.com") || cleanUrl.includes("youtu.be"))) {
+    const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts|live)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
+    const match = cleanUrl.match(regExp);
+    if (match && match[1]) {
+      videoId = match[1];
+    }
+  }
+
+  // Fallback 2: If we still don't have videoId, and cleanUrl matches a raw 11-char ID
+  if (!videoId) {
     const fallbackMatch = cleanUrl.match(/^[a-zA-Z0-9_-]{11}$/);
     if (fallbackMatch) {
       videoId = cleanUrl;
@@ -71,8 +97,9 @@ function parseYoutubeUrl(url: string) {
   if (videoId) {
     const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1${listId ? `&list=${listId}` : ""}`;
     const src = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-    return { videoId, embedUrl, src };
+    return { videoId, embedUrl, src, listId };
   }
+  
   return null;
 }
 
@@ -322,10 +349,37 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
     const unsubPort = onSnapshot(
       query(collection(db, "portfolio_items"), orderBy("order", "asc")),
       (snapshot) => {
-        const list: PortfolioItem[] = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...(doc.data() as Omit<PortfolioItem, "id">)
-        }));
+        const list: PortfolioItem[] = snapshot.docs.map(doc => {
+          const data = doc.data();
+          let src = data.src || "";
+          let videoUrl = data.videoUrl || "";
+          let youtubeUrl = data.youtubeUrl || "";
+
+          // Check if there is ANY indication that this item is a YouTube video
+          const isVideoUrlYoutube = !!(videoUrl && (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be")));
+          const isYoutubeUrlYoutube = !!(youtubeUrl && (youtubeUrl.includes("youtube.com") || youtubeUrl.includes("youtu.be")));
+          const isSrcYoutube = !!(src && (src.includes("youtube.com") || src.includes("youtu.be")));
+
+          if (isVideoUrlYoutube || isYoutubeUrlYoutube || isSrcYoutube) {
+            // Find the best link of the candidate URLs
+            const candidateUrl = youtubeUrl || videoUrl || src;
+            const parsed = parseYoutubeUrl(candidateUrl);
+            if (parsed) {
+              src = parsed.src;
+              videoUrl = parsed.embedUrl;
+              youtubeUrl = candidateUrl;
+            }
+          }
+
+          return {
+            id: doc.id,
+            src: src,
+            title: data.title || "",
+            videoUrl: videoUrl || undefined,
+            youtubeUrl: youtubeUrl || undefined,
+            order: data.order ?? 0
+          };
+        });
         setPortfolio(list);
       },
       (error) => handleFirestoreError(error, OperationType.LIST, "portfolio_items")
@@ -1617,7 +1671,19 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
                           
                           {/* Image preview */}
                           <div className="w-24 h-24 sm:w-20 sm:h-20 shrink-0 rounded-xl overflow-hidden bg-brand-surface border border-white/10 relative">
-                            <img src={isEditing ? editPortSrc : item.src} alt="Slide thumb" className="w-full h-full object-cover" />
+                            <img 
+                              src={isEditing ? editPortSrc : item.src} 
+                              alt="Slide thumb" 
+                              className="w-full h-full object-cover" 
+                              onError={(e) => {
+                                const currentSrc = e.currentTarget.src;
+                                if (currentSrc.includes("maxresdefault.jpg")) {
+                                  e.currentTarget.src = currentSrc.replace("maxresdefault.jpg", "hqdefault.jpg");
+                                } else if (currentSrc.includes("hqdefault.jpg")) {
+                                  e.currentTarget.src = currentSrc.replace("hqdefault.jpg", "0.jpg");
+                                }
+                              }}
+                            />
                             {isVideo && (
                               <div className="absolute inset-0 bg-red-600/20 flex items-center justify-center">
                                 <VideoIcon size={14} className="text-red-400" />

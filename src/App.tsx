@@ -413,23 +413,49 @@ const Equipment = () => {
 // Automatic YouTube URL parser with robust fallbacks
 function parseYoutubeUrl(url: string) {
   if (!url) return null;
+  const cleanUrl = url.trim();
+  
   let videoId = "";
   let listId = "";
 
+  // Extract list parameter if any
   try {
-    const listMatch = url.match(/[?&]list=([^#\&\?]+)/);
+    const listMatch = cleanUrl.match(/[?&]list=([^#\&\?]+)/);
     if (listMatch) {
       listId = listMatch[1];
     }
   } catch (e) {}
 
-  const cleanUrl = url.trim();
-  const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts|live)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
-  const match = cleanUrl.match(regExp);
+  // A list of regexes to cover all common configurations:
+  const patterns = [
+    /shorts\/([a-zA-Z0-9_-]{11})/,
+    /live\/([a-zA-Z0-9_-]{11})/,
+    /embed\/([a-zA-Z0-9_-]{11})/,
+    /v\/([a-zA-Z0-9_-]{11})/,
+    /vi\/([a-zA-Z0-9_-]{11})/,
+    /[?&]v=([a-zA-Z0-9_-]{11})/,
+    /youtu\.be\/([a-zA-Z0-9_-]{11})/
+  ];
 
-  if (match && match[1]) {
-    videoId = match[1];
-  } else {
+  for (const pattern of patterns) {
+    const match = cleanUrl.match(pattern);
+    if (match && match[1]) {
+      videoId = match[1];
+      break;
+    }
+  }
+
+  // Fallback 1: If URL has youtube, but didn't match standard patterns, look for watch/v/embed where id is at the end or surrounded
+  if (!videoId && (cleanUrl.includes("youtube.com") || cleanUrl.includes("youtu.be"))) {
+    const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts|live)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
+    const match = cleanUrl.match(regExp);
+    if (match && match[1]) {
+      videoId = match[1];
+    }
+  }
+
+  // Fallback 2: If we still don't have videoId, and cleanUrl matches a raw 11-char ID
+  if (!videoId) {
     const fallbackMatch = cleanUrl.match(/^[a-zA-Z0-9_-]{11}$/);
     if (fallbackMatch) {
       videoId = cleanUrl;
@@ -439,8 +465,9 @@ function parseYoutubeUrl(url: string) {
   if (videoId) {
     const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1${listId ? `&list=${listId}` : ""}`;
     const src = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-    return { videoId, embedUrl, src };
+    return { videoId, embedUrl, src, listId };
   }
+  
   return null;
 }
 
@@ -1068,24 +1095,19 @@ export default function App() {
           let videoUrl = data.videoUrl || undefined;
           let youtubeUrl = data.youtubeUrl || undefined;
 
-          // Auto-heal if they pasted a YouTube link in the URL/src box but it didn't get parsed in backend
-          if (src.includes("youtube.com") || src.includes("youtu.be")) {
-            const parsed = parseYoutubeUrl(src);
+          // Check if there is ANY indication that this item is a YouTube video
+          const isVideoUrlYoutube = !!(videoUrl && (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be")));
+          const isYoutubeUrlYoutube = !!(youtubeUrl && (youtubeUrl.includes("youtube.com") || youtubeUrl.includes("youtu.be")));
+          const isSrcYoutube = !!(src && (src.includes("youtube.com") || src.includes("youtu.be")));
+
+          if (isVideoUrlYoutube || isYoutubeUrlYoutube || isSrcYoutube) {
+            // Find the best link of the candidate URLs
+            const candidateUrl = youtubeUrl || videoUrl || src;
+            const parsed = parseYoutubeUrl(candidateUrl);
             if (parsed) {
               src = parsed.src;
               videoUrl = parsed.embedUrl;
-              youtubeUrl = data.src;
-            }
-          }
-
-          // Auto-heal if youtubeUrl is present but videoUrl is empty
-          if (youtubeUrl && !videoUrl) {
-            const parsed = parseYoutubeUrl(youtubeUrl);
-            if (parsed) {
-              if (!src || src.includes("youtube.com") || src.includes("youtu.be")) {
-                src = parsed.src;
-              }
-              videoUrl = parsed.embedUrl;
+              youtubeUrl = candidateUrl;
             }
           }
 
