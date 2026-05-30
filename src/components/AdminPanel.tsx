@@ -243,7 +243,7 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [authError, setAuthError] = useState("");
+  const [authError, setAuthError] = useState<React.ReactNode>("");
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -379,7 +379,14 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
       } else if (error.code === "auth/invalid-email") {
         errorMsg = "E-mail inválido.";
       }
-      setAuthError(errorMsg + " Se novos usuários de login/senha não funcionarem, certifique-se de ativar o Provedor 'E-mail/Senha' no Console do Firebase.");
+      setAuthError(
+        <div className="space-y-1">
+          <p className="font-semibold">{errorMsg}</p>
+          <p className="text-[10px] text-white/50">
+            Se novos acessos via login/senha não funcionarem, certifique-se de que o provedor de login "E-mail/Senha" está Ativo no Console do Firebase.
+          </p>
+        </div>
+      );
     } finally {
       setIsActionLoading(false);
     }
@@ -394,8 +401,38 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
       await signInWithPopup(auth, provider);
       showFeedback("success", "Administrador logado via Google!");
     } catch (error: any) {
-      console.error(error);
-      setAuthError("Erro na autenticação do Google. Verifique.");
+      console.error("Erro completo do Google Auth:", error);
+      
+      let hint = "";
+      if (error.code === "auth/popup-blocked") {
+        hint = "O navegador bloqueou o popup de login. Por favor, libere popups para este site ou utilize outro navegador.";
+      } else if (error.code === "auth/operation-not-allowed") {
+        hint = "O provedor de login com Google não está ativo no Console do Firebase. Ative-o em Authentication > Sign-in method > Google.";
+      } else if (error.code === "auth/unauthorized-domain") {
+        hint = "Este domínio não está adicionado na lista de Domínios Autorizados no Console do Firebase (Authentication > Configurações > Domínios Autorizados).";
+      } else if (error.code === "auth/internal-error" || error.code === "auth/network-request-failed") {
+        hint = "Erro de rede ou falha com os servidores do Firebase. Verifique sua conexão de internet.";
+      } else if (window.self !== window.top) {
+        hint = "Você está visualizando o site dentro de um frame (iframe) do chat/editor do AI Studio. A maioria dos navegadores bloqueia popups de autenticação do Google por segurança dentro de frames. Clique no botão de 'Abrir em nova aba' (no canto superior direito da tela de visualização) para usar o Google Auth diretamente!";
+      } else {
+        hint = "Verifique se o login do Google está ativo no seu Console Firebase e se o seu domínio (onde está hospedado) foi adicionado à lista de Domínios Autorizados em Authentication > Settings.";
+      }
+
+      setAuthError(
+        <div className="space-y-2 text-left">
+          <p className="font-bold text-red-400">Falha na autenticação do Google:</p>
+          <p className="font-mono text-[10px] bg-black/40 p-2 rounded border border-red-500/10 select-all leading-normal text-white/70">
+            Código: {error.code || "unknown"} <br/>
+            {error.message ? `Detalhe: ${error.message}` : ""}
+          </p>
+          <div className="bg-orange-500/10 p-3 rounded-xl border border-orange-500/25 mt-2">
+            <p className="text-orange-400 font-bold mb-1 text-[11px] uppercase tracking-wider">💡 Como resolver:</p>
+            <p className="text-white/80 font-normal text-[11px] leading-relaxed">
+              {hint}
+            </p>
+          </div>
+        </div>
+      );
     } finally {
       setIsActionLoading(false);
     }
