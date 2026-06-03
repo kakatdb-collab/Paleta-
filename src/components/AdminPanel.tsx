@@ -310,6 +310,13 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
   // Track if DB is totally empty to offer template seeding
   const [isDbEmpty, setIsDbEmpty] = useState(false);
 
+  // Custom delete confirmation modal state
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    id: string;
+    type: "banner" | "dna" | "portfolio";
+    message: string;
+  } | null>(null);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -673,19 +680,12 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
     }
   };
 
-  const handleDeleteBanner = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta foto do Banner principal?")) return;
-    setIsActionLoading(true);
-    try {
-      await deleteDoc(doc(db, "banner_images", id));
-      showFeedback("success", "Foto removida com sucesso do banner!");
-    } catch (error: any) {
-      console.error(error);
-      handleFirestoreError(error, OperationType.DELETE, `banner_images/${id}`);
-      showFeedback("error", "Erro ao excluir imagem do banner.");
-    } finally {
-      setIsActionLoading(false);
-    }
+  const handleDeleteBannerTrigger = (id: string) => {
+    setDeleteConfirm({
+      id,
+      type: "banner",
+      message: "Tem certeza que deseja excluir esta foto do Banner principal permanentemente?"
+    });
   };
 
   const handleMoveBanner = async (index: number, direction: "up" | "down") => {
@@ -754,19 +754,12 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
     }
   };
 
-  const handleDeleteDna = async (id: string) => {
-    if (!confirm("Deseja mesmo remover esta foto de Nosso DNA?")) return;
-    setIsActionLoading(true);
-    try {
-      await deleteDoc(doc(db, "nosso_dna_images", id));
-      showFeedback("success", "Foto removida do DNA.");
-    } catch (error: any) {
-      console.error(error);
-      handleFirestoreError(error, OperationType.DELETE, `nosso_dna_images/${id}`);
-      showFeedback("error", "Erro ao deletar.");
-    } finally {
-      setIsActionLoading(false);
-    }
+  const handleDeleteDnaTrigger = (id: string) => {
+    setDeleteConfirm({
+      id,
+      type: "dna",
+      message: "Deseja realmente remover esta foto da seção Nosso DNA permanentemente?"
+    });
   };
 
   const handleMoveDna = async (index: number, direction: "up" | "down") => {
@@ -863,16 +856,35 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
     }
   };
 
-  const handleDeletePortfolio = async (id: string) => {
-    if (!confirm("Excluir este slide de Portfólio permanentemente?")) return;
+  const handleDeletePortfolioTrigger = (id: string, title?: string) => {
+    setDeleteConfirm({
+      id,
+      type: "portfolio",
+      message: `Tem certeza de que deseja excluir o slide "${title || 'sem título'}" do Portfólio de Gravações permanentemente?`
+    });
+  };
+
+  const executeDelete = async () => {
+    if (!deleteConfirm) return;
+    const { id, type } = deleteConfirm;
+    setDeleteConfirm(null);
     setIsActionLoading(true);
     try {
-      await deleteDoc(doc(db, "portfolio_items", id));
-      showFeedback("success", "Slide removido.");
+      if (type === "portfolio") {
+        await deleteDoc(doc(db, "portfolio_items", id));
+        showFeedback("success", "Slide removido do portfólio.");
+      } else if (type === "banner") {
+        await deleteDoc(doc(db, "banner_images", id));
+        showFeedback("success", "Foto removida com sucesso do Banner!");
+      } else if (type === "dna") {
+        await deleteDoc(doc(db, "nosso_dna_images", id));
+        showFeedback("success", "Foto removida com sucesso do Nosso DNA.");
+      }
     } catch (error: any) {
       console.error(error);
-      handleFirestoreError(error, OperationType.DELETE, `portfolio_items/${id}`);
-      showFeedback("error", "Erro ao deletar.");
+      const collectionName = type === "portfolio" ? "portfolio_items" : (type === "banner" ? "banner_images" : "nosso_dna_images");
+      handleFirestoreError(error, OperationType.DELETE, `${collectionName}/${id}`);
+      showFeedback("error", "Erro ao deletar o item.");
     } finally {
       setIsActionLoading(false);
     }
@@ -1315,7 +1327,7 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
                         </div>
 
                         <button
-                          onClick={() => handleDeleteBanner(item.id)}
+                          onClick={() => handleDeleteBannerTrigger(item.id)}
                           className="w-8 h-8 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 flex items-center justify-center transition-colors border border-red-500/20 cursor-pointer"
                           title="Excluir do Banner"
                         >
@@ -1471,7 +1483,7 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
                         </div>
 
                         <button
-                          onClick={() => handleDeleteDna(item.id)}
+                          onClick={() => handleDeleteDnaTrigger(item.id)}
                           className="w-8 h-8 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 flex items-center justify-center transition-colors border border-red-500/20 cursor-pointer"
                           title="Excluir"
                         >
@@ -1792,7 +1804,7 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
                                   <Edit size={14} />
                                 </button>
                                 <button
-                                  onClick={() => handleDeletePortfolio(item.id)}
+                                  onClick={() => handleDeletePortfolioTrigger(item.id, item.title)}
                                   disabled={isActionLoading}
                                   className="w-8 h-8 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 flex items-center justify-center border border-red-500/20 cursor-pointer"
                                   title="Remover slide"
@@ -1815,6 +1827,39 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
         )}
 
       </div>
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-[9999] p-4 font-sans">
+          <div className="bg-brand-surface border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-2xl text-center space-y-6">
+            <div className="w-16 h-16 bg-red-500/10 border border-red-500/25 rounded-full flex items-center justify-center mx-auto text-red-500">
+              <Trash2 size={28} />
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-lg font-bold text-white">Confirmar Exclusão</h3>
+              <p className="text-sm text-white/70 leading-relaxed">
+                {deleteConfirm.message}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-white font-semibold text-sm transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={executeDelete}
+                className="flex-1 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-sm transition-colors cursor-pointer flex items-center justify-center gap-2"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
